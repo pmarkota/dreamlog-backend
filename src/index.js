@@ -6,16 +6,48 @@ const morgan = require("morgan");
 
 const app = express();
 
-// Configure CORS to accept requests from Expo app
+// Configure CORS for production and development
+const allowedOrigins = [
+  "https://dreamlog-frontend.vercel.app",
+  "http://localhost:3000",
+  "http://localhost:5000",
+];
+
 app.use(
   cors({
-    origin: true, // Allow all origins in development
-    credentials: false,
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) === -1) {
+        const msg =
+          "The CORS policy for this site does not allow access from the specified Origin.";
+        return callback(new Error(msg), false);
+      }
+      return callback(null, true);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
   })
 );
 
 // Middleware
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        connectSrc: ["'self'", ...allowedOrigins],
+        frameSrc: ["'self'", ...allowedOrigins],
+        imgSrc: ["'self'", "data:", "blob:", ...allowedOrigins],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+      },
+    },
+  })
+);
 app.use(morgan("dev"));
 app.use(express.json());
 
