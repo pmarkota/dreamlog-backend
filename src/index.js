@@ -9,26 +9,28 @@ const app = express();
 // Configure CORS for production and development
 const allowedOrigins = [
   "https://dreamlog-frontend.vercel.app",
+  "https://dreamlog-backend.vercel.app",
   "http://localhost:3000",
   "http://localhost:5000",
 ];
 
+// CORS configuration
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow requests with no origin (like mobile apps or curl requests)
+      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.indexOf(origin) === -1) {
-        const msg =
-          "The CORS policy for this site does not allow access from the specified Origin.";
-        return callback(new Error(msg), false);
+        console.log("Blocked origin:", origin); // Debug log
+        return callback(null, false);
       }
       return callback(null, true);
     },
-    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+    credentials: true,
+    maxAge: 86400, // Cache preflight request for 24 hours
   })
 );
 
@@ -36,31 +38,24 @@ app.use(
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        connectSrc: ["'self'", ...allowedOrigins],
-        frameSrc: ["'self'", ...allowedOrigins],
-        imgSrc: ["'self'", "data:", "blob:", ...allowedOrigins],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-      },
-    },
+    contentSecurityPolicy: false, // Disable CSP for simplicity in development
   })
 );
-app.use(morgan("dev"));
-app.use(express.json());
 
-// Add request logging middleware
+// Debug middleware to log requests
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log("Origin:", req.headers.origin);
   console.log("Headers:", req.headers);
-  console.log("Body:", req.body);
   next();
 });
 
-// Basic route
+app.use(morgan("dev"));
+app.use(express.json());
+
+// Basic route with CORS headers
 app.get("/", (req, res) => {
+  res.header("Access-Control-Allow-Origin", "*");
   res.json({ message: "Welcome to DreamLog API" });
 });
 
@@ -74,14 +69,21 @@ app.use("/api/auth", authRoutes);
 app.use("/api/dreams", dreamsRoutes);
 app.use("/api/analysis", dreamAnalysisRoutes);
 
-const PORT = process.env.PORT || 5000;
-const HOST = "0.0.0.0";
-const NETWORK_IP = "172.20.10.2";
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    message: "Something went wrong!",
+    error:
+      process.env.NODE_ENV === "development"
+        ? err.message
+        : "Internal server error",
+  });
+});
 
-// Listen on all network interfaces
-app.listen(PORT, HOST, () => {
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
-  console.log(`Local: http://localhost:${PORT}`);
-  console.log(`Network: http://${NETWORK_IP}:${PORT}`);
-  console.log(`API Endpoint: http://${NETWORK_IP}:${PORT}/api`);
+  console.log("Allowed origins:", allowedOrigins);
 });
