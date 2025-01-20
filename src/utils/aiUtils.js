@@ -2,12 +2,29 @@ const { Configuration, OpenAIApi } = require("openai");
 const config = require("../config/config");
 const { supabaseClient: supabase } = require("../config/supabase");
 
-// Initialize OpenAI
-const openai = new OpenAIApi(
-  new Configuration({
-    apiKey: config.openai.apiKey,
-  })
-);
+// Debug logging
+console.log("Config loaded in aiUtils:", {
+  hasOpenAI: !!config?.openai,
+  hasOpenAIKey: !!config?.openai?.apiKey,
+  configKeys: Object.keys(config || {}),
+});
+
+// Initialize OpenAI with error handling
+let openai;
+try {
+  if (!config?.openai?.apiKey) {
+    throw new Error("OpenAI API key is missing");
+  }
+
+  openai = new OpenAIApi(
+    new Configuration({
+      apiKey: config.openai.apiKey,
+    })
+  );
+} catch (error) {
+  console.error("Failed to initialize OpenAI:", error);
+  throw error;
+}
 
 async function canUserUseAI(userId) {
   console.log("[aiUtils] Checking AI usage for user:", userId);
