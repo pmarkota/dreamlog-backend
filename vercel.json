@@ -17,14 +17,5 @@
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS"
       }
     }
-  ],
-  "env": {
-    "OPENAI_API_KEY": "@openai_api_key",
-    "SENDGRID_API_KEY": "@sendgrid_api_key",
-    "SENDGRID_FROM_EMAIL": "@sendgrid_from_email",
-    "SENDGRID_FROM_NAME": "@sendgrid_from_name",
-    "SUPABASE_URL": "@supabase_url",
-    "SUPABASE_ANON_KEY": "@supabase_anon_key",
-    "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key"
-  }
+  ]
 }
