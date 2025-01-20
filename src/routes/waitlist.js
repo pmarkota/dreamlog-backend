@@ -33,7 +33,7 @@ router.post("/", async (req, res) => {
       source: req.headers.referer || "direct",
       userAgent: req.headers["user-agent"],
       timestamp: new Date().toISOString(),
-      ipAddress: getClientIp(req), // Using our helper function
+      ipAddress: getClientIp(req),
       language: req.headers["accept-language"],
     };
 
@@ -69,12 +69,18 @@ router.post("/", async (req, res) => {
       throw insertError;
     }
 
-    // Send welcome email
-    await EmailService.sendWaitlistEmail(email, metadata);
+    // Try to send welcome email, but don't fail if email service is disabled
+    const emailResult = await EmailService.sendWaitlistEmail(email, metadata);
 
+    // Return appropriate response based on email service status
     res.status(200).json({
       message: "Successfully joined waitlist",
       email,
+      email_status: EmailService.isEnabled()
+        ? emailResult?.success
+          ? "sent"
+          : "failed"
+        : "disabled",
     });
   } catch (error) {
     console.error("Waitlist signup error:", error);

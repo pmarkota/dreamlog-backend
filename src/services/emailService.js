@@ -5,10 +5,13 @@ const configModule = require("../config/config");
 // Handle both nested and direct config
 const config = configModule.config || configModule;
 
-console.log("Email service config structure:", {
+// Add debug logging for SendGrid configuration
+console.log("Email service configuration:", {
   hasConfig: !!config,
   hasSendGrid: !!config?.sendgrid,
-  sendgridKeys: config?.sendgrid ? Object.keys(config.sendgrid) : [],
+  hasApiKey: !!config?.sendgrid?.apiKey,
+  hasFromEmail: !!config?.sendgrid?.fromEmail,
+  hasFromName: !!config?.sendgrid?.fromName,
 });
 
 // Validate SendGrid configuration
@@ -16,28 +19,39 @@ if (!config?.sendgrid?.apiKey) {
   console.warn(
     "SendGrid API key is missing. Email functionality will be disabled."
   );
-  module.exports = {
-    addToWaitlist: async () => {
-      console.log("Email functionality disabled - SendGrid not configured");
+
+  class DisabledEmailService {
+    static isEnabled() {
       return false;
-    },
-    sendEmail: async () => {
+    }
+
+    static async addToWaitlist(email, metadata = {}) {
       console.log("Email functionality disabled - SendGrid not configured");
-      return false;
-    },
-    sendWaitlistEmail: async () => {
+      return { success: false, reason: "email_disabled" };
+    }
+
+    static async sendEmail(to, templateName) {
       console.log("Email functionality disabled - SendGrid not configured");
-      return false;
-    },
-    sendWelcomeEmail: async () => {
+      return { success: false, reason: "email_disabled" };
+    }
+
+    static async sendWaitlistEmail(email, metadata = {}) {
       console.log("Email functionality disabled - SendGrid not configured");
-      return false;
-    },
-    sendBulkEmail: async () => {
+      return { success: false, reason: "email_disabled" };
+    }
+
+    static async sendWelcomeEmail(email) {
       console.log("Email functionality disabled - SendGrid not configured");
-      return false;
-    },
-  };
+      return { success: false, reason: "email_disabled" };
+    }
+
+    static async sendBulkEmail(options) {
+      console.log("Email functionality disabled - SendGrid not configured");
+      return { success: false, reason: "email_disabled" };
+    }
+  }
+
+  module.exports = DisabledEmailService;
 } else {
   sgMail.setApiKey(config.sendgrid.apiKey);
   client.setApiKey(config.sendgrid.apiKey);
@@ -48,6 +62,10 @@ if (!config?.sendgrid?.apiKey) {
   const WAITLIST_TEMPLATE_ID = "d-92edaf8d637749ad8467e3a59fdae252";
 
   class EmailService {
+    static isEnabled() {
+      return true;
+    }
+
     static async addToWaitlist(email, metadata = {}) {
       const data = {
         contacts: [
