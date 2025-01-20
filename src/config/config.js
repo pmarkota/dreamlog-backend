@@ -24,16 +24,37 @@ if (missingEnvVars.length > 0) {
 
 // Create config object
 const config = {
+  openai: {
+    apiKey: process.env.OPENAI_API_KEY,
+  },
   sendgrid: {
     apiKey: process.env.SENDGRID_API_KEY,
     fromEmail: process.env.SENDGRID_FROM_EMAIL,
     fromName: process.env.SENDGRID_FROM_NAME,
   },
+  supabase: {
+    url: process.env.SUPABASE_URL,
+    serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  },
+  nodeEnv: process.env.NODE_ENV || "development",
 };
 
 // Debug logging of final config
-console.log("Config object structure:", JSON.stringify(config, null, 2));
-console.log("OpenAI key exists in config:", !!config.openai?.apiKey);
+console.log(
+  "Config object structure:",
+  JSON.stringify(
+    {
+      ...config,
+      openai: { apiKey: config.openai.apiKey ? "[HIDDEN]" : undefined },
+      sendgrid: { apiKey: config.sendgrid.apiKey ? "[HIDDEN]" : undefined },
+      supabase: {
+        serviceKey: config.supabase.serviceKey ? "[HIDDEN]" : undefined,
+      },
+    },
+    null,
+    2
+  )
+);
 
 // Export the config object directly
 module.exports = config;
