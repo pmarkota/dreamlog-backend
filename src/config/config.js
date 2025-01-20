@@ -9,7 +9,12 @@ console.log("Environment variables status:", {
   SENDGRID_FROM_NAME: !!process.env.SENDGRID_FROM_NAME ? "exists" : "missing",
 });
 
-console.log("All env variables:", Object.keys(process.env));
+// Log raw values for debugging (without exposing sensitive data)
+console.log("Raw SendGrid values:", {
+  apiKey: process.env.SENDGRID_API_KEY?.substring(0, 5) + "...",
+  fromEmail: process.env.SENDGRID_FROM_EMAIL,
+  fromName: process.env.SENDGRID_FROM_NAME,
+});
 
 // Validate required environment variables
 const requiredEnvVars = [
@@ -56,10 +61,12 @@ console.log("Config object structure:", {
   hasSendGridEmail: !!config.sendgrid?.fromEmail,
   hasSendGridName: !!config.sendgrid?.fromName,
   configKeys: Object.keys(config),
+  sendgridConfig: {
+    hasApiKey: !!config.sendgrid?.apiKey,
+    fromEmail: config.sendgrid?.fromEmail,
+    fromName: config.sendgrid?.fromName,
+  },
 });
 
-// Export both the direct config and nested structure for compatibility
-module.exports = {
-  ...config, // Direct access to config properties
-  config: config, // Nested access for compatibility
-};
+// Export config object directly to avoid nesting issues
+module.exports = config;
