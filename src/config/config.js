@@ -2,15 +2,23 @@ require("dotenv").config();
 
 // Debug logging
 console.log("Environment variables loaded in config.js:");
-console.log("OPENAI_API_KEY exists:", !!process.env.OPENAI_API_KEY);
-console.log(
-  "Raw OPENAI_API_KEY value type:",
-  typeof process.env.OPENAI_API_KEY
-);
+console.log("Environment variables status:", {
+  OPENAI_API_KEY: !!process.env.OPENAI_API_KEY ? "exists" : "missing",
+  SENDGRID_API_KEY: !!process.env.SENDGRID_API_KEY ? "exists" : "missing",
+  SENDGRID_FROM_EMAIL: !!process.env.SENDGRID_FROM_EMAIL ? "exists" : "missing",
+  SENDGRID_FROM_NAME: !!process.env.SENDGRID_FROM_NAME ? "exists" : "missing",
+});
+
 console.log("All env variables:", Object.keys(process.env));
 
 // Validate required environment variables
-const requiredEnvVars = ["OPENAI_API_KEY"];
+const requiredEnvVars = [
+  "OPENAI_API_KEY",
+  "SENDGRID_API_KEY",
+  "SENDGRID_FROM_EMAIL",
+  "SENDGRID_FROM_NAME",
+];
+
 const missingEnvVars = requiredEnvVars.filter(
   (varName) => !process.env[varName]
 );
@@ -43,6 +51,10 @@ const config = {
 console.log("Config object structure:", {
   hasOpenAI: !!config.openai,
   hasOpenAIKey: !!config.openai?.apiKey,
+  hasSendGrid: !!config.sendgrid,
+  hasSendGridKey: !!config.sendgrid?.apiKey,
+  hasSendGridEmail: !!config.sendgrid?.fromEmail,
+  hasSendGridName: !!config.sendgrid?.fromName,
   configKeys: Object.keys(config),
 });
 
