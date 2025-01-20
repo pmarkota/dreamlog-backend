@@ -6,12 +6,28 @@ const morgan = require("morgan");
 
 const app = express();
 
-// Basic CORS setup - allow all origins
+// Updated CORS configuration for Vercel
+const allowedOrigins = [
+  "https://dreamlog-frontend.vercel.app",
+  "https://dreamlog-frontend-26tuh6do5-petars-projects-c8c2d231.vercel.app",
+  "http://localhost:3000",
+];
+
 app.use(
   cors({
-    origin: "*",
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) === -1) {
+        const msg =
+          "The CORS policy for this site does not allow access from the specified Origin.";
+        return callback(new Error(msg), false);
+      }
+      return callback(null, true);
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
 
