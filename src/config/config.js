@@ -40,21 +40,14 @@ const config = {
 };
 
 // Debug logging of final config
-console.log(
-  "Config object structure:",
-  JSON.stringify(
-    {
-      ...config,
-      openai: { apiKey: config.openai.apiKey ? "[HIDDEN]" : undefined },
-      sendgrid: { apiKey: config.sendgrid.apiKey ? "[HIDDEN]" : undefined },
-      supabase: {
-        serviceKey: config.supabase.serviceKey ? "[HIDDEN]" : undefined,
-      },
-    },
-    null,
-    2
-  )
-);
+console.log("Config object structure:", {
+  hasOpenAI: !!config.openai,
+  hasOpenAIKey: !!config.openai?.apiKey,
+  configKeys: Object.keys(config),
+});
 
-// Export the config object directly
-module.exports = config;
+// Export both the direct config and nested structure for compatibility
+module.exports = {
+  ...config, // Direct access to config properties
+  config: config, // Nested access for compatibility
+};

@@ -8,14 +8,23 @@ const getOpenAIInstance = () => {
     console.log("Getting OpenAI instance...");
 
     // Get config and handle possible nested structure
-    const config = require("./config");
-    console.log("Raw config:", JSON.stringify(config, null, 2));
+    const configModule = require("./config");
+    const config = configModule.config || configModule; // Handle both nested and direct config
+
+    console.log("Config structure:", {
+      hasNestedConfig: !!configModule.config,
+      hasDirectConfig: !!configModule.openai,
+      configKeys: Object.keys(configModule),
+      nestedConfigKeys: configModule.config
+        ? Object.keys(configModule.config)
+        : [],
+    });
 
     // Try to get API key from various possible locations
     const apiKey =
       process.env.OPENAI_API_KEY ||
-      config?.config?.openai?.apiKey ||
-      config?.openai?.apiKey;
+      config?.openai?.apiKey ||
+      configModule?.config?.openai?.apiKey;
 
     console.log("API Key exists:", !!apiKey);
 
