@@ -3,6 +3,10 @@ require("dotenv").config();
 // Debug logging
 console.log("Environment variables loaded in config.js:");
 console.log("OPENAI_API_KEY exists:", !!process.env.OPENAI_API_KEY);
+console.log(
+  "Raw OPENAI_API_KEY value type:",
+  typeof process.env.OPENAI_API_KEY
+);
 console.log("All env variables:", Object.keys(process.env));
 
 // Validate required environment variables
@@ -18,22 +22,21 @@ if (missingEnvVars.length > 0) {
   );
 }
 
+// Create config object
 const config = {
   openai: {
-    apiKey: process.env.OPENAI_API_KEY || null,
+    apiKey: process.env.OPENAI_API_KEY,
   },
   sendgrid: {
-    apiKey: process.env.SENDGRID_API_KEY || null,
-    fromEmail: process.env.SENDGRID_FROM_EMAIL || null,
-    fromName: process.env.SENDGRID_FROM_NAME || null,
+    apiKey: process.env.SENDGRID_API_KEY,
+    fromEmail: process.env.SENDGRID_FROM_EMAIL,
+    fromName: process.env.SENDGRID_FROM_NAME,
   },
 };
 
 // Debug logging of final config
-console.log("Final config structure:", {
-  openaiKeyExists: !!config.openai?.apiKey,
-  sendgridKeyExists: !!config.sendgrid?.apiKey,
-  configKeys: Object.keys(config),
-});
+console.log("Config object structure:", JSON.stringify(config, null, 2));
+console.log("OpenAI key exists in config:", !!config.openai?.apiKey);
 
+// Export the config object directly
 module.exports = config;

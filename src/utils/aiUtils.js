@@ -3,26 +3,37 @@ const config = require("../config/config");
 const { supabaseClient: supabase } = require("../config/supabase");
 
 // Debug logging
-console.log("Config loaded in aiUtils:", {
-  hasOpenAI: !!config?.openai,
-  hasOpenAIKey: !!config?.openai?.apiKey,
-  configKeys: Object.keys(config || {}),
-});
+console.log("Config received in aiUtils:", JSON.stringify(config, null, 2));
 
 // Initialize OpenAI with error handling
 let openai;
 try {
-  if (!config?.openai?.apiKey) {
-    throw new Error("OpenAI API key is missing");
+  if (!config || typeof config !== "object") {
+    throw new Error("Config is not properly loaded");
   }
 
-  openai = new OpenAIApi(
-    new Configuration({
-      apiKey: config.openai.apiKey,
-    })
-  );
+  if (!config.openai || typeof config.openai !== "object") {
+    throw new Error("OpenAI config section is missing");
+  }
+
+  if (!config.openai.apiKey) {
+    throw new Error("OpenAI API key is missing in config");
+  }
+
+  const configuration = new Configuration({
+    apiKey: config.openai.apiKey,
+  });
+
+  openai = new OpenAIApi(configuration);
+  console.log("OpenAI client initialized successfully");
 } catch (error) {
-  console.error("Failed to initialize OpenAI:", error);
+  console.error("Failed to initialize OpenAI:", error.message);
+  console.error("Config state:", {
+    hasConfig: !!config,
+    configType: typeof config,
+    hasOpenAISection: !!config?.openai,
+    hasAPIKey: !!config?.openai?.apiKey,
+  });
   throw error;
 }
 
