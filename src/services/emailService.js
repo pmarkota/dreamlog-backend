@@ -4,7 +4,7 @@ const config = require("../config/config");
 
 sgMail.setApiKey(config.sendgrid.apiKey);
 client.setApiKey(config.sendgrid.apiKey);
-
+//hey
 const FROM_EMAIL = config.sendgrid.fromEmail;
 const FROM_NAME = config.sendgrid.fromName;
 const WAITLIST_LIST_ID = "2e1b99cc-e123-4360-bb66-c4c78b7b1a4d";
