@@ -24,9 +24,6 @@ if (missingEnvVars.length > 0) {
 
 // Create config object
 const config = {
-  openai: {
-    apiKey: process.env.OPENAI_API_KEY,
-  },
   sendgrid: {
     apiKey: process.env.SENDGRID_API_KEY,
     fromEmail: process.env.SENDGRID_FROM_EMAIL,

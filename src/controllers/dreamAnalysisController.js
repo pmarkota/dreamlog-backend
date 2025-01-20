@@ -1,10 +1,5 @@
 const { supabaseClient } = require("../config/supabase");
-const { Configuration, OpenAIApi } = require("openai");
-
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
+const { getOpenAIInstance } = require("../config/openai");
 
 // Basic dream analysis (free feature)
 const getBasicAnalysis = async (req, res) => {
@@ -52,6 +47,8 @@ const getBasicAnalysis = async (req, res) => {
       );
       return res.json(existingAnalysis);
     }
+
+    const openai = getOpenAIInstance();
 
     // Generate AI analysis
     const prompt = `Please analyze this dream and provide:
