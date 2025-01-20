@@ -54,7 +54,12 @@ const getBasicAnalysis = async (req, res) => {
     }
 
     // Generate AI analysis
-    const prompt = `Please provide a brief analysis of this dream in 4 sentences or less:
+    const prompt = `Please analyze this dream and provide:
+1. A brief analysis (4 sentences or less)
+2. The overall emotional tone/sentiment (Format: SCORE: [number between -1 and 1], followed by explanation. Example: "SCORE: 0.8 - This dream has a very positive tone because...")
+3. Key themes present
+4. Important symbols and their meanings
+
 Title: ${dream.title}
 Description: ${dream.description}
 Tags: ${(dream.dream_tags || [])
@@ -74,7 +79,7 @@ Clarity: ${dream.clarity_level}/5`;
         {
           role: "system",
           content:
-            "You are a dream analyst providing concise interpretations. Keep your analysis brief and focused on the most important elements. Respond in 4 sentences or less.",
+            "You are a dream analyst providing concise interpretations. Keep your analysis brief and focused on the most important elements. Format your response in sections:\n1. Analysis: (4 sentences)\n2. Sentiment: (Start with 'SCORE: [number between -1 and 1]' then explain the score. Use -1 for very negative, -0.5 for negative, 0 for neutral, 0.5 for positive, 1 for very positive)\n3. Themes: (comma-separated list)\n4. Symbols: (list with brief meanings)",
         },
         {
           role: "user",
@@ -84,17 +89,42 @@ Clarity: ${dream.clarity_level}/5`;
     });
 
     const aiAnalysis = aiResponse.data.choices[0].message.content;
+    const sections = extractSectionsFromAnalysis(aiAnalysis);
+
+    // Extract sentiment score from AI analysis
+    const sentimentSection = sections["Sentiment"] || "";
+    console.log("Sentiment section:", sentimentSection);
+    let sentimentScore = 0;
+    const scoreMatch = sentimentSection.match(/SCORE:\s*([-+]?\d*\.?\d+)/);
+    console.log("Score match:", scoreMatch);
+    if (scoreMatch) {
+      sentimentScore = parseFloat(scoreMatch[1]);
+      console.log("Extracted score:", sentimentScore);
+    } else if (sentimentSection.toLowerCase().includes("positive")) {
+      sentimentScore = sentimentSection.toLowerCase().includes("very")
+        ? 1
+        : 0.5;
+      console.log("Fallback positive score:", sentimentScore);
+    } else if (sentimentSection.toLowerCase().includes("negative")) {
+      sentimentScore = sentimentSection.toLowerCase().includes("very")
+        ? -1
+        : -0.5;
+      console.log("Fallback negative score:", sentimentScore);
+    } else {
+      console.log(
+        "No sentiment detected, using default score:",
+        sentimentScore
+      );
+    }
 
     // Format basic analysis
     const analysis = {
       dream_id: dreamId,
       analysis_type: "basic",
-      themes: extractThemes(aiAnalysis),
-      symbols_detected: (dream.dream_tags || [])
-        .map((dt) => dt?.tags?.name || "")
-        .filter(Boolean),
-      interpretation: aiAnalysis,
-      sentiment_score: calculateSentimentScore(dream.dream_moods || []),
+      themes: extractThemes(sections["Themes"] || ""),
+      symbols_detected: extractSymbols(sections["Symbols"] || ""),
+      interpretation: sections["Analysis"] || aiAnalysis,
+      sentiment_score: sentimentScore,
       psychological_analysis: null,
       personal_growth_insights: null,
       lucid_dreaming_tips: null,
@@ -125,6 +155,18 @@ Clarity: ${dream.clarity_level}/5`;
       .json({ message: "Failed to analyze dream", error: error.message });
   }
 };
+
+// Helper function to extract symbols with meanings
+function extractSymbols(symbolsText) {
+  if (!symbolsText) return [];
+  // Split by newlines or commas
+  const symbols = symbolsText
+    .split(/[,\n]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  // If symbols contain meanings (with ':' or '-'), extract just the symbol name
+  return symbols.map((s) => s.split(/[:|-]/)[0].trim());
+}
 
 // Premium dream analysis with GPT-3.5-turbo
 const getPremiumAnalysis = async (req, res) => {
@@ -179,7 +221,7 @@ const getPremiumAnalysis = async (req, res) => {
           {
             role: "system",
             content:
-              "You are a professional dream analyst. Address the user directly using 'you/your'. Format your response with these exact headers:\n1. Main themes and symbols:\n2. Psychological interpretation:\n3. Personal growth insights:\n4. Lucid dreaming potential:\n5. Recommendations for future dreams:\nKeep each section concise but meaningful.",
+              "You are a professional dream analyst. Address the user directly using 'you/your'. Format your response with these exact headers:\n1. Main themes and symbols:\n2. Psychological interpretation:\n3. Personal growth insights:\n4. Lucid dreaming potential:\n5. Recommendations for future dreams:\n6. Emotional tone/sentiment: (Start with 'SCORE: [number between -1 and 1]' then explain the score. Use -1 for very negative, -0.5 for negative, 0 for neutral, 0.5 for positive, 1 for very positive)\nKeep each section concise but meaningful.",
           },
           {
             role: "user",
@@ -195,6 +237,32 @@ const getPremiumAnalysis = async (req, res) => {
       const aiAnalysis = aiResponse.data.choices[0].message.content;
       const sections = extractSectionsFromAnalysis(aiAnalysis);
 
+      // Extract sentiment score from AI analysis
+      const sentimentSection = sections["Emotional tone/sentiment"] || "";
+      console.log("Sentiment section:", sentimentSection);
+      let sentimentScore = 0;
+      const scoreMatch = sentimentSection.match(/SCORE:\s*([-+]?\d*\.?\d+)/);
+      console.log("Score match:", scoreMatch);
+      if (scoreMatch) {
+        sentimentScore = parseFloat(scoreMatch[1]);
+        console.log("Extracted score:", sentimentScore);
+      } else if (sentimentSection.toLowerCase().includes("positive")) {
+        sentimentScore = sentimentSection.toLowerCase().includes("very")
+          ? 1
+          : 0.5;
+        console.log("Fallback positive score:", sentimentScore);
+      } else if (sentimentSection.toLowerCase().includes("negative")) {
+        sentimentScore = sentimentSection.toLowerCase().includes("very")
+          ? -1
+          : -0.5;
+        console.log("Fallback negative score:", sentimentScore);
+      } else {
+        console.log(
+          "No sentiment detected, using default score:",
+          sentimentScore
+        );
+      }
+
       // Update the existing analysis to premium
       const { data: updatedAnalysis, error: updateError } = await supabaseClient
         .from("dream_analysis")
@@ -202,6 +270,10 @@ const getPremiumAnalysis = async (req, res) => {
           analysis_type: "premium",
           interpretation: aiAnalysis,
           themes: extractThemes(sections["Main themes and symbols"] || ""),
+          symbols_detected: extractSymbols(
+            sections["Main themes and symbols"] || ""
+          ),
+          sentiment_score: sentimentScore,
           psychological_analysis:
             sections["Psychological interpretation"] || "",
           personal_growth_insights: sections["Personal growth insights"] || "",
@@ -244,7 +316,7 @@ const getPremiumAnalysis = async (req, res) => {
         {
           role: "system",
           content:
-            "You are a professional dream analyst. Address the user directly using 'you/your'. Format your response with these exact headers:\n1. Main themes and symbols:\n2. Psychological interpretation:\n3. Personal growth insights:\n4. Lucid dreaming potential:\n5. Recommendations for future dreams:\nKeep each section concise but meaningful.",
+            "You are a professional dream analyst. Address the user directly using 'you/your'. Format your response with these exact headers:\n1. Main themes and symbols:\n2. Psychological interpretation:\n3. Personal growth insights:\n4. Lucid dreaming potential:\n5. Recommendations for future dreams:\n6. Emotional tone/sentiment: (Start with 'SCORE: [number between -1 and 1]' then explain the score. Use -1 for very negative, -0.5 for negative, 0 for neutral, 0.5 for positive, 1 for very positive)\nKeep each section concise but meaningful.",
         },
         {
           role: "user",
@@ -260,13 +332,41 @@ const getPremiumAnalysis = async (req, res) => {
     const aiAnalysis = aiResponse.data.choices[0].message.content;
     const sections = extractSectionsFromAnalysis(aiAnalysis);
 
+    // Extract sentiment score from AI analysis
+    const sentimentSection = sections["Emotional tone/sentiment"] || "";
+    console.log("Sentiment section:", sentimentSection);
+    let sentimentScore = 0;
+    const scoreMatch = sentimentSection.match(/SCORE:\s*([-+]?\d*\.?\d+)/);
+    console.log("Score match:", scoreMatch);
+    if (scoreMatch) {
+      sentimentScore = parseFloat(scoreMatch[1]);
+      console.log("Extracted score:", sentimentScore);
+    } else if (sentimentSection.toLowerCase().includes("positive")) {
+      sentimentScore = sentimentSection.toLowerCase().includes("very")
+        ? 1
+        : 0.5;
+      console.log("Fallback positive score:", sentimentScore);
+    } else if (sentimentSection.toLowerCase().includes("negative")) {
+      sentimentScore = sentimentSection.toLowerCase().includes("very")
+        ? -1
+        : -0.5;
+      console.log("Fallback negative score:", sentimentScore);
+    } else {
+      console.log(
+        "No sentiment detected, using default score:",
+        sentimentScore
+      );
+    }
+
     const analysis = {
       dream_id: dreamId,
       analysis_type: "premium",
       themes: extractThemes(sections["Main themes and symbols"] || ""),
       interpretation: aiAnalysis,
-      symbols_detected: dream.dream_tags.map((dt) => dt.tags.name),
-      sentiment_score: calculateSentimentScore(dream.dream_moods),
+      symbols_detected: extractSymbols(
+        sections["Main themes and symbols"] || ""
+      ),
+      sentiment_score: sentimentScore,
       psychological_analysis: sections["Psychological interpretation"] || "",
       personal_growth_insights: sections["Personal growth insights"] || "",
       lucid_dreaming_tips: sections["Lucid dreaming potential"] || "",
@@ -390,7 +490,7 @@ const generateDreamAnalysisPrompt = (dream) => {
     .filter(Boolean)
     .join(", ");
 
-  return `Analyze this dream concisely with all five sections:
+  return `Analyze your dream concisely with all sections:
 Title: ${dream.title}
 Description: ${dream.description}
 Tags: ${tags}
@@ -398,12 +498,13 @@ Moods: ${moods}
 Lucid: ${dream.is_lucid ? "Yes" : "No"}
 Clarity: ${dream.clarity_level}/5
 
-Use these exact section headers:
-1. Main themes and symbols:
-2. Psychological interpretation:
-3. Personal growth insights:
-4. Lucid dreaming potential:
-5. Recommendations for future dreams:
+Use these exact section headers and speak directly to the user:
+1. Main themes and symbols in your dream:
+2. Your psychological interpretation:
+3. Your personal growth insights:
+4. Your lucid dreaming potential:
+5. Recommendations for your future dreams:
+6. Emotional tone/sentiment: (Start with 'SCORE: [number between -1 and 1]' then explain the score. Use -1 for very negative, -0.5 for negative, 0 for neutral, 0.5 for positive, 1 for very positive. Consider both the dream content and the dreamer's moods.)
 
 Keep each section focused and meaningful. Address the user directly using "you" and "your".`;
 };
@@ -472,6 +573,7 @@ const extractSectionsFromAnalysis = (aiAnalysis) => {
     "Personal growth insights",
     "Lucid dreaming potential",
     "Recommendations for future dreams",
+    "Emotional tone/sentiment",
   ];
 
   let currentSection = "";
@@ -482,13 +584,13 @@ const extractSectionsFromAnalysis = (aiAnalysis) => {
     if (!trimmedLine) return;
 
     // Check if line is a section header
-    const headerMatch = trimmedLine.match(/\d+\.\s*(.*?):/);
+    const headerMatch = trimmedLine.match(/\d+\.\s*(.*?):|([^:]+):/);
     if (headerMatch) {
       // Save previous section if exists
       if (currentSection && currentContent.length > 0) {
         sections[currentSection] = currentContent.join("\n").trim();
       }
-      currentSection = headerMatch[1].trim();
+      currentSection = (headerMatch[1] || headerMatch[2]).trim();
       currentContent = [];
     } else {
       currentContent.push(trimmedLine);

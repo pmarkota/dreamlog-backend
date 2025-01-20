@@ -48,8 +48,7 @@ const signup = async (req, res) => {
         email: newUser.email,
         is_premium: newUser.is_premium,
       },
-      process.env.JWT_SECRET,
-      { expiresIn: "24h" }
+      process.env.JWT_SECRET
     );
 
     res.status(201).json({
@@ -97,8 +96,7 @@ const login = async (req, res) => {
         email: user.email,
         is_premium: user.is_premium,
       },
-      process.env.JWT_SECRET,
-      { expiresIn: "24h" }
+      process.env.JWT_SECRET
     );
 
     // Remove password_hash from response

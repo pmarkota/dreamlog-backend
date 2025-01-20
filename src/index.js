@@ -23,11 +23,17 @@ app.use(express.json());
 const authRoutes = require("./routes/auth");
 const dreamsRoutes = require("./routes/dreams");
 const dreamAnalysisRoutes = require("./routes/dreamAnalysis");
+const userRoutes = require("./routes/users");
+const insightsRoutes = require("./routes/insights");
+const waitlistRoutes = require("./routes/waitlist");
 
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/dreams", dreamsRoutes);
 app.use("/api/analysis", dreamAnalysisRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/insights", insightsRoutes);
+app.use("/api/waitlist", waitlistRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {

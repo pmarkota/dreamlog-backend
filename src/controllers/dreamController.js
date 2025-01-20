@@ -575,6 +575,147 @@ const getDreamsByDate = async (req, res) => {
   }
 };
 
+// Get dream statistics
+const getDreamStats = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Start of current week (Sunday)
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    // Get total dreams count
+    const { data: totalDreams, error: totalError } = await supabaseClient
+      .from("dreams")
+      .select("id", { count: "exact" })
+      .eq("user_id", userId);
+
+    if (totalError) throw totalError;
+
+    // Get this week's dreams count
+    const { data: weekDreams, error: weekError } = await supabaseClient
+      .from("dreams")
+      .select("id", { count: "exact" })
+      .eq("user_id", userId)
+      .gte("dream_date", startOfWeek.toISOString().split("T")[0]);
+
+    if (weekError) throw weekError;
+
+    // Get lucid dreams count
+    const { data: lucidDreams, error: lucidError } = await supabaseClient
+      .from("dreams")
+      .select("id", { count: "exact" })
+      .eq("user_id", userId)
+      .eq("is_lucid", true);
+
+    if (lucidError) throw lucidError;
+
+    res.json({
+      total_dreams: totalDreams.length,
+      dreams_this_week: weekDreams.length,
+      lucid_dreams: lucidDreams.length,
+    });
+  } catch (error) {
+    console.error("Error fetching dream stats:", error);
+    res.status(500).json({
+      message: "Failed to fetch dream statistics",
+      error: error.message,
+    });
+  }
+};
+
+const checkAIUsageLimit = async (userId) => {
+  try {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    console.log("Checking AI usage limit for user:", userId);
+
+    // Get user's premium status
+    const { data: userData, error: userError } = await supabaseClient
+      .from("users")
+      .select("is_premium")
+      .eq("id", userId)
+      .single();
+
+    if (userError) {
+      console.error("Error fetching user premium status:", userError);
+      throw new Error(
+        `Error checking user premium status: ${userError.message}`
+      );
+    }
+
+    if (!userData) {
+      console.error("No user found with ID:", userId);
+      throw new Error("User not found");
+    }
+
+    console.log("User premium status:", userData.is_premium);
+
+    // If user is premium, they have unlimited usage
+    if (userData.is_premium) {
+      return { canUseAI: true, remainingUses: -1 }; // -1 indicates unlimited
+    }
+
+    // Count AI analyses in the last week
+    const { data: usageData, error: usageError } = await supabaseClient
+      .from("ai_analysis_usage")
+      .select("id")
+      .eq("user_id", userId)
+      .gte("used_at", oneWeekAgo.toISOString());
+
+    if (usageError) {
+      console.error("Error checking AI usage:", usageError);
+      throw new Error(`Error checking AI usage: ${usageError.message}`);
+    }
+
+    const usedThisWeek = usageData?.length || 0;
+    const weeklyLimit = 1; // Free users get 1 analysis per week
+
+    console.log("AI usage this week:", usedThisWeek, "out of", weeklyLimit);
+
+    return {
+      canUseAI: usedThisWeek < weeklyLimit,
+      remainingUses: Math.max(0, weeklyLimit - usedThisWeek),
+    };
+  } catch (error) {
+    console.error("Error in checkAIUsageLimit:", error);
+    throw error;
+  }
+};
+
+const trackAIUsage = async (userId, dreamId, analysisType) => {
+  const { error } = await supabaseClient.from("ai_analysis_usage").insert([
+    {
+      user_id: userId,
+      dream_id: dreamId,
+      analysis_type: analysisType,
+      used_at: new Date().toISOString(),
+    },
+  ]);
+
+  if (error) {
+    console.error("Error tracking AI usage:", error);
+    throw new Error(`Error tracking AI usage: ${error.message}`);
+  }
+};
+
+const getAIUsageStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { canUseAI, remainingUses } = await checkAIUsageLimit(userId);
+
+    res.json({
+      canUseAI,
+      remainingUses,
+      isUnlimited: remainingUses === -1,
+    });
+  } catch (error) {
+    console.error("Error getting AI usage stats:", error);
+    res.status(500).json({ error: "Failed to get AI usage stats" });
+  }
+};
+
 module.exports = {
   createDream,
   getDreams,
@@ -582,4 +723,8 @@ module.exports = {
   updateDream,
   deleteDream,
   getDreamsByDate,
+  getDreamStats,
+  checkAIUsageLimit,
+  trackAIUsage,
+  getAIUsageStats,
 };
