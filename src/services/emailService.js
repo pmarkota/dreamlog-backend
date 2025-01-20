@@ -1,9 +1,6 @@
 const sgMail = require("@sendgrid/mail");
 const client = require("@sendgrid/client");
-const configModule = require("../config/config");
-
-// Handle both nested and direct config
-const config = configModule.config || configModule;
+const config = require("../config/config");
 
 // Add detailed debug logging
 console.log("Raw environment variables:", {
@@ -12,10 +9,9 @@ console.log("Raw environment variables:", {
   SENDGRID_FROM_NAME: process.env.SENDGRID_FROM_NAME ? "exists" : "missing",
 });
 
-console.log("Raw config module:", {
-  hasConfigProperty: "config" in configModule,
-  topLevelKeys: Object.keys(configModule),
-  nestedConfigKeys: configModule.config ? Object.keys(configModule.config) : [],
+console.log("Config in email service:", {
+  hasConfig: !!config,
+  configKeys: Object.keys(config),
   sendgridConfig: config?.sendgrid || "missing",
 });
 
