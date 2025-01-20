@@ -90,13 +90,17 @@ if (!config?.sendgrid?.apiKey) {
 
         await client.request(request);
         console.log(`Added ${email} to SendGrid waitlist`);
-        return true;
+        return { success: true };
       } catch (error) {
         console.error("Error adding contact to SendGrid:", error);
         if (error.response) {
           console.error(error.response.body);
         }
-        throw error;
+        return {
+          success: false,
+          reason: "sendgrid_error",
+          error: error.message,
+        };
       }
     }
 
@@ -122,21 +126,37 @@ if (!config?.sendgrid?.apiKey) {
       try {
         await sgMail.send(msg);
         console.log(`Email sent successfully to ${to}`);
-        return true;
+        return { success: true };
       } catch (error) {
         console.error("Error sending email:", error);
         if (error.response) {
           console.error(error.response.body);
         }
-        throw error;
+        return {
+          success: false,
+          reason: "sendgrid_error",
+          error: error.message,
+        };
       }
     }
 
     static async sendWaitlistEmail(email, metadata = {}) {
-      // First add to SendGrid contacts
-      await this.addToWaitlist(email, metadata);
-      // Then send the welcome email
-      return this.sendEmail(email, "waitlist");
+      try {
+        // First add to SendGrid contacts
+        const addResult = await this.addToWaitlist(email, metadata);
+        if (!addResult.success) {
+          return addResult;
+        }
+        // Then send the welcome email
+        return await this.sendEmail(email, "waitlist");
+      } catch (error) {
+        console.error("Error in sendWaitlistEmail:", error);
+        return {
+          success: false,
+          reason: "sendgrid_error",
+          error: error.message,
+        };
+      }
     }
 
     static async sendWelcomeEmail(email) {
@@ -152,7 +172,7 @@ if (!config?.sendgrid?.apiKey) {
       try {
         const data = {
           name: subject,
-          sender_id: 1, // You might need to adjust this based on your SendGrid settings
+          sender_id: 1,
           subject: subject,
           list_ids: [listId],
           template_id: templateId,
@@ -184,13 +204,17 @@ if (!config?.sendgrid?.apiKey) {
             sendAt ? "scheduled" : "sent"
           } successfully to list ${listId}`
         );
-        return true;
+        return { success: true };
       } catch (error) {
         console.error("Error sending bulk email:", error);
         if (error.response) {
           console.error(error.response.body);
         }
-        throw error;
+        return {
+          success: false,
+          reason: "sendgrid_error",
+          error: error.message,
+        };
       }
     }
   }
