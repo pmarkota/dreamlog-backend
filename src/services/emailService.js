@@ -1,6 +1,15 @@
 const sgMail = require("@sendgrid/mail");
 const client = require("@sendgrid/client");
-const config = require("../config/config");
+const configModule = require("../config/config");
+
+// Handle both nested and direct config
+const config = configModule.config || configModule;
+
+console.log("Email service config structure:", {
+  hasConfig: !!config,
+  hasSendGrid: !!config?.sendgrid,
+  sendgridKeys: config?.sendgrid ? Object.keys(config.sendgrid) : [],
+});
 
 sgMail.setApiKey(config.sendgrid.apiKey);
 client.setApiKey(config.sendgrid.apiKey);
