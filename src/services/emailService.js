@@ -3,25 +3,17 @@ const client = require("@sendgrid/client");
 const config = require("../config/config");
 
 // Add detailed debug logging
-console.log("Raw environment variables:", {
-  SENDGRID_API_KEY: process.env.SENDGRID_API_KEY ? "exists" : "missing",
-  SENDGRID_FROM_EMAIL: process.env.SENDGRID_FROM_EMAIL ? "exists" : "missing",
-  SENDGRID_FROM_NAME: process.env.SENDGRID_FROM_NAME ? "exists" : "missing",
-});
-
-console.log("Config in email service:", {
+console.log("Email service initialization:", {
   hasConfig: !!config,
   configKeys: Object.keys(config),
-  sendgridConfig: config?.sendgrid || "missing",
-});
-
-// Add debug logging for SendGrid configuration
-console.log("Email service configuration:", {
-  hasConfig: !!config,
   hasSendGrid: !!config?.sendgrid,
-  hasApiKey: !!config?.sendgrid?.apiKey,
-  hasFromEmail: !!config?.sendgrid?.fromEmail,
-  hasFromName: !!config?.sendgrid?.fromName,
+  sendgridConfig: config?.sendgrid
+    ? {
+        hasApiKey: !!config.sendgrid.apiKey,
+        hasFromEmail: !!config.sendgrid.fromEmail,
+        hasFromName: !!config.sendgrid.fromName,
+      }
+    : "missing",
 });
 
 // Validate SendGrid configuration

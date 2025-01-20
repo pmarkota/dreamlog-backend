@@ -68,5 +68,13 @@ console.log("Config object structure:", {
   },
 });
 
-// Export config object directly to avoid nesting issues
-module.exports = config;
+// Export a function to get config to ensure consistent state
+let configInstance = null;
+function getConfig() {
+  if (!configInstance) {
+    configInstance = config;
+  }
+  return configInstance;
+}
+
+module.exports = getConfig();
