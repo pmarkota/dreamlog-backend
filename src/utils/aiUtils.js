@@ -1,20 +1,17 @@
 const { Configuration, OpenAIApi } = require("openai");
-const configModule = require("../config/config");
+const config = require("../config/config");
 const { supabaseClient: supabase } = require("../config/supabase");
 
 // Debug logging
-console.log(
-  "Config received in aiUtils:",
-  JSON.stringify(configModule, null, 2)
-);
-
-// Handle both nested and direct config
-const config = configModule.config || configModule;
-
-console.log("Using config structure:", {
-  hasNestedConfig: !!configModule.config,
-  hasDirectConfig: !!configModule.openai,
+console.log("AI Utils configuration:", {
+  hasConfig: !!config,
   configKeys: Object.keys(config),
+  hasOpenAI: !!config?.openai,
+  openaiConfig: config?.openai
+    ? {
+        hasApiKey: !!config.openai.apiKey,
+      }
+    : "missing",
 });
 
 // Initialize OpenAI with error handling

@@ -7,26 +7,18 @@ const getOpenAIInstance = () => {
     // Add debug logging
     console.log("Getting OpenAI instance...");
 
-    // Get config and handle possible nested structure
-    const configModule = require("./config");
-    const config = configModule.config || configModule; // Handle both nested and direct config
+    // Get config
+    const config = require("./config");
 
-    console.log("Config structure:", {
-      hasNestedConfig: !!configModule.config,
-      hasDirectConfig: !!configModule.openai,
-      configKeys: Object.keys(configModule),
-      nestedConfigKeys: configModule.config
-        ? Object.keys(configModule.config)
-        : [],
+    console.log("OpenAI config structure:", {
+      hasConfig: !!config,
+      configKeys: Object.keys(config),
+      hasOpenAI: !!config?.openai,
+      hasApiKey: !!config?.openai?.apiKey,
     });
 
-    // Try to get API key from various possible locations
-    const apiKey =
-      process.env.OPENAI_API_KEY ||
-      config?.openai?.apiKey ||
-      configModule?.config?.openai?.apiKey;
-
-    console.log("API Key exists:", !!apiKey);
+    // Get API key from config
+    const apiKey = config?.openai?.apiKey;
 
     if (!apiKey) {
       throw new Error("OpenAI API key is missing");
